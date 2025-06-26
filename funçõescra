@@ -1,0 +1,328 @@
+------------------------------------------ CADASTRAMENTO ---------------------------------------------------------
+
+-- Cliente
+CREATE OR REPLACE FUNCTION cadastrar_cliente(p_id INT, p_nome VARCHAR, p_telefone VARCHAR, p_email VARCHAR)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Cliente VALUES (p_id, p_nome, p_telefone, p_email);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Funcionario
+CREATE OR REPLACE FUNCTION cadastrar_funcionario(p_id INT, p_nome VARCHAR, p_data DATE)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Funcionario VALUES (p_id, p_nome, p_data);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Venda
+CREATE OR REPLACE FUNCTION cadastrar_venda(p_id INT, p_data DATE, p_cliente INT, p_funcionario INT)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Venda VALUES (p_id, p_data, p_cliente, p_funcionario);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Parcela
+CREATE OR REPLACE FUNCTION cadastrar_parcela(p_id INT, p_venda INT, p_venc DATE, p_pag DATE, p_valor DECIMAL, p_multa DECIMAL)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Parcela VALUES (p_id, p_venda, p_venc, p_pag, p_valor, p_multa);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Produto
+CREATE OR REPLACE FUNCTION cadastrar_produto(p_id INT, p_nome VARCHAR, p_tipo VARCHAR, p_plataforma VARCHAR, p_estoque INT, p_preco DECIMAL, p_fornecedor INT)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Produto VALUES (p_id, p_nome, p_tipo, p_plataforma, p_estoque, p_preco, p_fornecedor);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fornecedor
+CREATE OR REPLACE FUNCTION cadastrar_fornecedor(p_id INT, p_nome VARCHAR, p_telefone VARCHAR)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Fornecedor VALUES (p_id, p_nome, p_telefone);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Item_Venda
+CREATE OR REPLACE FUNCTION cadastrar_item_venda(p_venda INT, p_produto INT, p_quantidade INT)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Item_Venda VALUES (p_venda, p_produto, p_quantidade);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Compra
+CREATE OR REPLACE FUNCTION cadastrar_compra(p_id INT, p_data DATE)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Compra VALUES (p_id, p_data);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Item_Compra
+CREATE OR REPLACE FUNCTION cadastrar_item_compra(p_compra INT, p_produto INT, p_quantidade INT)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Item_Compra VALUES (p_compra, p_produto, p_quantidade);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fornece
+CREATE OR REPLACE FUNCTION cadastrar_fornece(p_fornecedor INT, p_compra INT)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO Fornece VALUES (p_fornecedor, p_compra);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Cliente
+CREATE OR REPLACE FUNCTION remover_cliente(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Cliente WHERE id_cliente = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Funcionario
+CREATE OR REPLACE FUNCTION remover_funcionario(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Funcionario WHERE id_funcionario = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Venda
+CREATE OR REPLACE FUNCTION remover_venda(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Venda WHERE id_venda = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Parcela
+CREATE OR REPLACE FUNCTION remover_parcela(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Parcela WHERE id_parcela = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Produto
+CREATE OR REPLACE FUNCTION remover_produto(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Produto WHERE id_produto = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fornecedor
+CREATE OR REPLACE FUNCTION remover_fornecedor(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Fornecedor WHERE id_fornecedor = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Item_Venda
+CREATE OR REPLACE FUNCTION remover_item_venda(p_venda INT, p_produto INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Item_Venda WHERE id_venda = p_venda AND id_produto = p_produto;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Compra
+CREATE OR REPLACE FUNCTION remover_compra(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Compra WHERE id_compra = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Item_Compra
+CREATE OR REPLACE FUNCTION remover_item_compra(p_compra INT, p_produto INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Item_Compra WHERE id_compra = p_compra AND id_produto = p_produto;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fornece
+CREATE OR REPLACE FUNCTION remover_fornece(p_fornecedor INT, p_compra INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Fornece WHERE id_fornecedor = p_fornecedor AND id_compra = p_compra;
+END;
+$$ LANGUAGE plpgsql;
+
+----------------------------------------------------- REMOÇÃO --------------------------------------------------------
+
+-- Cliente
+CREATE OR REPLACE FUNCTION remover_cliente(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Cliente WHERE id_cliente = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Funcionario
+CREATE OR REPLACE FUNCTION remover_funcionario(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Funcionario WHERE id_funcionario = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Venda
+CREATE OR REPLACE FUNCTION remover_venda(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Venda WHERE id_venda = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Parcela
+CREATE OR REPLACE FUNCTION remover_parcela(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Parcela WHERE id_parcela = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Produto
+CREATE OR REPLACE FUNCTION remover_produto(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Produto WHERE id_produto = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fornecedor
+CREATE OR REPLACE FUNCTION remover_fornecedor(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Fornecedor WHERE id_fornecedor = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Item_Venda
+CREATE OR REPLACE FUNCTION remover_item_venda(p_venda INT, p_produto INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Item_Venda WHERE id_venda = p_venda AND id_produto = p_produto;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Compra
+CREATE OR REPLACE FUNCTION remover_compra(p_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Compra WHERE id_compra = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Item_Compra
+CREATE OR REPLACE FUNCTION remover_item_compra(p_compra INT, p_produto INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Item_Compra WHERE id_compra = p_compra AND id_produto = p_produto;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fornece
+CREATE OR REPLACE FUNCTION remover_fornece(p_fornecedor INT, p_compra INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM Fornece WHERE id_fornecedor = p_fornecedor AND id_compra = p_compra;
+END;
+$$ LANGUAGE plpgsql;
+
+---------------------------------------------------- ALTERAÇÃO -----------------------------------------------------
+
+-- Cliente
+CREATE OR REPLACE FUNCTION atualizar_cliente(p_id INT, p_nome VARCHAR, p_telefone VARCHAR, p_email VARCHAR)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Cliente SET nome = p_nome, telefone = p_telefone, email = p_email WHERE id_cliente = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Funcionario
+CREATE OR REPLACE FUNCTION atualizar_funcionario(p_id INT, p_nome VARCHAR, p_data DATE)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Funcionario SET nome = p_nome, data_admissao = p_data WHERE id_funcionario = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Venda
+CREATE OR REPLACE FUNCTION atualizar_venda(p_id INT, p_data DATE, p_cliente INT, p_funcionario INT)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Venda SET data = p_data, id_cliente = p_cliente, id_funcionario = p_funcionario WHERE id_venda = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Parcela
+CREATE OR REPLACE FUNCTION atualizar_parcela(p_id INT, p_venda INT, p_venc DATE, p_pag DATE, p_valor DECIMAL, p_multa DECIMAL)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Parcela SET id_venda = p_venda, dt_venc = p_venc, dt_pag = p_pag, valor = p_valor, multa = p_multa
+    WHERE id_parcela = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Produto
+CREATE OR REPLACE FUNCTION atualizar_produto(p_id INT, p_nome VARCHAR, p_tipo VARCHAR, p_plataforma VARCHAR, p_estoque INT, p_preco DECIMAL, p_fornecedor INT)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Produto SET nome = p_nome, tipo = p_tipo, plataforma = p_plataforma, estoque = p_estoque, preco = p_preco, id_fornecedor = p_fornecedor
+    WHERE id_produto = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fornecedor
+CREATE OR REPLACE FUNCTION atualizar_fornecedor(p_id INT, p_nome VARCHAR, p_telefone VARCHAR)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Fornecedor SET nome = p_nome, telefone_cmp = p_telefone WHERE id_fornecedor = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Item_Venda
+CREATE OR REPLACE FUNCTION atualizar_item_venda(p_venda INT, p_produto INT, p_quantidade INT)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Item_Venda SET quantidade = p_quantidade WHERE id_venda = p_venda AND id_produto = p_produto;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Compra
+CREATE OR REPLACE FUNCTION atualizar_compra(p_id INT, p_data DATE)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Compra SET data = p_data WHERE id_compra = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Item_Compra
+CREATE OR REPLACE FUNCTION atualizar_item_compra(p_compra INT, p_produto INT, p_quantidade INT)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Item_Compra SET quantidade = p_quantidade WHERE id_compra = p_compra AND id_produto = p_produto;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fornece
+CREATE OR REPLACE FUNCTION atualizar_fornece(p_fornecedor INT, p_compra INT, novo_fornecedor INT, nova_compra INT)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE Fornece SET id_fornecedor = novo_fornecedor, id_compra = nova_compra
+    WHERE id_fornecedor = p_fornecedor AND id_compra = p_compra;
+END;
+$$ LANGUAGE plpgsql;
