@@ -1,0 +1,166 @@
+-------------------------------------- Funções Compostas ---------------------------------------------------
+
+CREATE OR REPLACE FUNCTION realizar_venda_completa(
+    p_id_venda INT,
+    p_data DATE,
+    p_id_cliente INT,
+    p_id_funcionario INT,
+    p_itens JSON,        -- Ex: '[{"id_produto":1,"quantidade":2}, {"id_produto":2,"quantidade":1}]'
+    p_parcelas JSON      -- Ex: '[{"dt_venc":"2025-07-10", "valor":150.00}]'
+) RETURNS TEXT AS $$
+DECLARE
+    item JSON;
+    parcela JSON;
+    v_id_produto INT;
+    v_quantidade INT;
+    v_estoque INT;
+    parcela_id INT := 1;
+BEGIN
+    -- Criar venda
+    INSERT INTO Venda(id_venda, data, id_cliente, id_funcionario)
+    VALUES (p_id_venda, p_data, p_id_cliente, p_id_funcionario);
+
+    -- Inserir itens e abater estoque
+    FOR item IN SELECT * FROM json_array_elements(p_itens)
+    LOOP
+        v_id_produto := (item ->> 'id_produto')::INT;
+        v_quantidade := (item ->> 'quantidade')::INT;
+
+        SELECT estoque INTO v_estoque FROM Produto WHERE id_produto = v_id_produto;
+
+        IF v_estoque < v_quantidade THEN
+            RAISE EXCEPTION 'Estoque insuficiente para o produto %', v_id_produto;
+        END IF;
+
+        INSERT INTO Item_Venda(id_venda, id_produto, quantidade)
+        VALUES (p_id_venda, v_id_produto, v_quantidade);
+
+        UPDATE Produto SET estoque = estoque - v_quantidade WHERE id_produto = v_id_produto;
+    END LOOP;
+
+    -- Inserir parcelas
+    FOR parcela IN SELECT * FROM json_array_elements(p_parcelas)
+    LOOP
+        INSERT INTO Parcela(id_parcela, id_venda, dt_venc, dt_pag, valor, multa)
+        VALUES (
+            (SELECT COALESCE(MAX(id_parcela), 0) + parcela_id FROM Parcela), 
+            p_id_venda,
+            (parcela ->> 'dt_venc')::DATE,
+            NULL,
+            (parcela ->> 'valor')::DECIMAL,
+            0
+        );
+        parcela_id := parcela_id + 1;
+    END LOOP;
+
+    RETURN 'Venda registrada com sucesso.';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION realizar_compra_completa(
+    p_id_compra INT,
+    p_data DATE,
+    p_id_fornecedor INT,
+    p_itens JSON -- Ex: '[{"id_produto":1,"quantidade":5}, {"id_produto":3,"quantidade":2}]'
+) RETURNS TEXT AS $$
+DECLARE
+    item JSON;
+    v_id_produto INT;
+    v_quantidade INT;
+BEGIN
+    -- Inserir Compra
+    INSERT INTO Compra(id_compra, data) VALUES (p_id_compra, p_data);
+
+    -- Relacionar com fornecedor
+    INSERT INTO Fornece(id_fornecedor, id_compra) VALUES (p_id_fornecedor, p_id_compra);
+
+    -- Inserir itens e atualizar estoque
+    FOR item IN SELECT * FROM json_array_elements(p_itens)
+    LOOP
+        v_id_produto := (item ->> 'id_produto')::INT;
+        v_quantidade := (item ->> 'quantidade')::INT;
+
+        INSERT INTO Item_Compra(id_compra, id_produto, quantidade)
+        VALUES (p_id_compra, v_id_produto, v_quantidade);
+
+        UPDATE Produto SET estoque = estoque + v_quantidade WHERE id_produto = v_id_produto;
+    END LOOP;
+
+    RETURN 'Compra registrada com sucesso.';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION registrar_pagamento_parcela(
+    p_id_parcela INT,
+    p_data_pagamento DATE,
+    p_multa DECIMAL
+) RETURNS TEXT AS $$
+DECLARE
+    ja_paga DATE;
+BEGIN
+    SELECT dt_pag INTO ja_paga FROM Parcela WHERE id_parcela = p_id_parcela;
+
+    IF ja_paga IS NOT NULL THEN
+        RAISE EXCEPTION 'Parcela % já está paga em %.', p_id_parcela, ja_paga;
+    END IF;
+
+    UPDATE Parcela
+    SET dt_pag = p_data_pagamento, multa = p_multa
+    WHERE id_parcela = p_id_parcela;
+
+    RETURN 'Pagamento registrado com sucesso.';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION cancelar_venda(p_id_venda INT)
+RETURNS TEXT AS $$
+DECLARE
+    p_parcela RECORD;
+    p_item RECORD;
+BEGIN
+    -- Verificar se há parcela paga
+    FOR p_parcela IN SELECT * FROM Parcela WHERE id_venda = p_id_venda LOOP
+        IF p_parcela.dt_pag IS NOT NULL THEN
+            RAISE EXCEPTION 'Venda não pode ser cancelada: parcela % já está paga.', p_parcela.id_parcela;
+        END IF;
+    END LOOP;
+
+    -- Repor estoque dos produtos
+    FOR p_item IN SELECT * FROM Item_Venda WHERE id_venda = p_id_venda LOOP
+        UPDATE Produto SET estoque = estoque + p_item.quantidade
+        WHERE id_produto = p_item.id_produto;
+    END LOOP;
+
+    -- Remover parcelas e itens
+    DELETE FROM Parcela WHERE id_venda = p_id_venda;
+    DELETE FROM Item_Venda WHERE id_venda = p_id_venda;
+    DELETE FROM Venda WHERE id_venda = p_id_venda;
+
+    RETURN 'Venda cancelada com sucesso.';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION atualizar_estoque_produto(
+    p_id_produto INT,
+    p_quantidade INT,
+    p_operacao VARCHAR -- 'entrada' ou 'saida'
+) RETURNS TEXT AS $$
+DECLARE
+    v_estoque INT;
+BEGIN
+    SELECT estoque INTO v_estoque FROM Produto WHERE id_produto = p_id_produto;
+
+    IF p_operacao = 'entrada' THEN
+        UPDATE Produto SET estoque = estoque + p_quantidade WHERE id_produto = p_id_produto;
+    ELSIF p_operacao = 'saida' THEN
+        IF v_estoque < p_quantidade THEN
+            RAISE EXCEPTION 'Estoque insuficiente.';
+        END IF;
+        UPDATE Produto SET estoque = estoque - p_quantidade WHERE id_produto = p_id_produto;
+    ELSE
+        RAISE EXCEPTION 'Operação inválida: use "entrada" ou "saida".';
+    END IF;
+
+    RETURN 'Estoque atualizado com sucesso.';
+END;
+$$ LANGUAGE plpgsql;
