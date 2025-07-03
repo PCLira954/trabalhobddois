@@ -44,7 +44,7 @@ GRANT INSERT ON Venda, Item_Venda, Parcela TO vendedor;
 
 -- Permissão para executar a função de venda
 GRANT EXECUTE ON FUNCTION realizar_venda_completa(
-    INT, DATE, INT, INT, JSON, INT, DATE, NUMERIC, NUMERIC
+    INT, DATE, INT, INT, JSON, JSON
 ) TO vendedor;
 
 -- -------------------------------
@@ -59,7 +59,7 @@ GRANT EXECUTE ON FUNCTION atualizar_produto(
 ) TO estoquista;
 
 GRANT EXECUTE ON FUNCTION atualizar_estoque_produto(
-    INT, INT, TEXT, TEXT
+    INT, INT, VARCHAR
 ) TO estoquista;
 
 -- -------------------------------
