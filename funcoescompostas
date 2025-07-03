@@ -237,17 +237,38 @@ WHERE p.dt_pag IS NULL AND p.dt_venc < CURRENT_DATE
 ORDER BY p.dt_venc ASC;
 
 ----- Histórico de movimentação de estoque
-SELECT 
-    le.id,
-    le.id_produto,
-    pr.nome AS produto,
-    le.operacao,
-    le.quantidade,
-    le.origem,
-    le.data
-FROM Log_Estoque le
-JOIN Produto pr ON pr.id_produto = le.id_produto
-ORDER BY le.data DESC;
+SELECT * FROM (
+    -- Entradas
+    SELECT 
+        ic.id_produto,
+        p.nome AS produto,
+        ic.quantidade,
+        'entrada' AS operacao,
+        co.data AS data,
+        f.nome AS origem
+    FROM Item_Compra ic
+    JOIN Produto p ON p.id_produto = ic.id_produto
+    JOIN Compra co ON co.id_compra = ic.id_compra
+    JOIN Fornece fz ON fz.id_compra = co.id_compra
+    JOIN Fornecedor f ON f.id_fornecedor = fz.id_fornecedor
+
+    UNION ALL
+
+    -- Saídas
+    SELECT 
+        iv.id_produto,
+        p.nome AS produto,
+        iv.quantidade,
+        'saida' AS operacao,
+        v.data AS data,
+        c.nome AS origem
+    FROM Item_Venda iv
+    JOIN Produto p ON p.id_produto = iv.id_produto
+    JOIN Venda v ON v.id_venda = iv.id_venda
+    JOIN Cliente c ON c.id_cliente = v.id_cliente
+) AS movimentacao
+ORDER BY data DESC;
+
 
 ----- Vendas realizadas em um período
 SELECT 
