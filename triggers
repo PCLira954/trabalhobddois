@@ -1,0 +1,83 @@
+-------------------------------------- TRIGGERS ---------------------------------------
+
+CREATE OR REPLACE FUNCTION validar_parcela()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.valor <= 0 THEN
+        RAISE EXCEPTION 'O valor da parcela deve ser maior que zero.';
+    END IF;
+
+    IF NEW.dt_venc < CURRENT_DATE THEN
+        RAISE EXCEPTION 'Data de vencimento da parcela não pode ser no passado.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validar_parcela
+BEFORE INSERT OR UPDATE ON Parcela
+FOR EACH ROW
+EXECUTE FUNCTION validar_parcela();
+
+CREATE OR REPLACE FUNCTION registrar_movimentacao_estoque()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_operacao VARCHAR(10);
+    v_quantidade INT;
+BEGIN
+    -- Evita log se estoque não mudou
+    IF NEW.estoque = OLD.estoque THEN
+        RETURN NEW;
+    END IF;
+
+    IF NEW.estoque > OLD.estoque THEN
+        v_operacao := 'entrada';
+        v_quantidade := NEW.estoque - OLD.estoque;
+    ELSE
+        v_operacao := 'saida';
+        v_quantidade := OLD.estoque - NEW.estoque;
+    END IF;
+
+    INSERT INTO Log_Estoque (id_produto, operacao, quantidade, origem)
+    VALUES (NEW.id_produto, v_operacao, v_quantidade, 'ajuste direto');
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_log_estoque
+AFTER UPDATE ON Produto
+FOR EACH ROW
+EXECUTE FUNCTION registrar_movimentacao_estoque();
+
+CREATE OR REPLACE FUNCTION impedir_exclusao_cliente_com_venda()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM Venda WHERE id_cliente = OLD.id_cliente) THEN
+        RAISE EXCEPTION 'Não é possível excluir cliente com vendas registradas.';
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_bloqueio_exclusao_cliente
+BEFORE DELETE ON Cliente
+FOR EACH ROW
+EXECUTE FUNCTION impedir_exclusao_cliente_com_venda();
+
+CREATE OR REPLACE FUNCTION impedir_exclusao_produto_vinculado()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM Item_Venda WHERE id_produto = OLD.id_produto) OR
+       EXISTS (SELECT 1 FROM Item_Compra WHERE id_produto = OLD.id_produto) THEN
+        RAISE EXCEPTION 'Produto está vinculado a vendas ou compras e não pode ser excluído.';
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_bloqueio_exclusao_produto
+BEFORE DELETE ON Produto
+FOR EACH ROW
+EXECUTE FUNCTION impedir_exclusao_produto_vinculado();
