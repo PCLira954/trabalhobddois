@@ -11,6 +11,17 @@ CREATE TABLE Funcionario (
     data_admissao DATE
 );
 
+CREATE TABLE Log_Estoque (
+    id SERIAL PRIMARY KEY,
+    id_produto INT,
+    operacao VARCHAR(10),  -- entrada / saida
+    quantidade INT,
+    origem VARCHAR(50),    -- ex: 'venda', 'compra', 'ajuste'
+    data TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (id_produto) REFERENCES Produto(id_produto)
+);
+
+
 CREATE TABLE Venda (
     id_venda INT PRIMARY KEY,
     data DATE,
