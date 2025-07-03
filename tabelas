@@ -30,6 +30,12 @@ CREATE TABLE Parcela (
     FOREIGN KEY (id_venda) REFERENCES Venda(id_venda)
 );
 
+CREATE TABLE Fornecedor (
+    id_fornecedor INT PRIMARY KEY,
+    nome VARCHAR(100),
+    telefone_cmp VARCHAR(20)
+);
+
 CREATE TABLE Produto (
     id_produto INT PRIMARY KEY,
     nome VARCHAR(100),
@@ -39,12 +45,6 @@ CREATE TABLE Produto (
     preco DECIMAL(10,2),
     id_fornecedor INT,
     FOREIGN KEY (id_fornecedor) REFERENCES Fornecedor(id_fornecedor)
-);
-
-CREATE TABLE Fornecedor (
-    id_fornecedor INT PRIMARY KEY,
-    nome VARCHAR(100),
-    telefone_cmp VARCHAR(20)
 );
 
 CREATE TABLE Item_Venda (
