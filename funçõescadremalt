@@ -1,10 +1,26 @@
 ------------------------------------------ CADASTRAMENTO ---------------------------------------------------------
-
 -- Cliente
-CREATE OR REPLACE FUNCTION cadastrar_cliente(p_id INT, p_nome VARCHAR, p_telefone VARCHAR, p_email VARCHAR)
-RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION cadastrar_cliente(
+    p_id_cliente INT,
+    p_nome VARCHAR,
+    p_telefone VARCHAR,
+    p_email VARCHAR
+) RETURNS TEXT AS $$
 BEGIN
-    INSERT INTO Cliente VALUES (p_id, p_nome, p_telefone, p_email);
+    IF p_email IS NULL OR LENGTH(TRIM(p_email)) = 0 THEN
+        RAISE EXCEPTION 'Erro: O e-mail do cliente é obrigatório.';
+    END IF;
+
+    INSERT INTO Cliente(id_cliente, nome, telefone, email)
+    VALUES (p_id_cliente, p_nome, p_telefone, p_email);
+
+    RETURN '✅ Cliente cadastrado com sucesso.';
+
+EXCEPTION
+    WHEN unique_violation THEN
+        RETURN '❌ Erro: Já existe um cliente com esse ID.';
+    WHEN OTHERS THEN
+        RETURN '❌ Erro inesperado ao cadastrar cliente.';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -33,12 +49,39 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Produto
-CREATE OR REPLACE FUNCTION cadastrar_produto(p_id INT, p_nome VARCHAR, p_tipo VARCHAR, p_plataforma VARCHAR, p_estoque INT, p_preco DECIMAL, p_fornecedor INT)
-RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION cadastrar_produto(
+    p_id_produto INT,
+    p_nome VARCHAR,
+    p_tipo VARCHAR,
+    p_plataforma VARCHAR,
+    p_estoque INT,
+    p_preco DECIMAL,
+    p_id_fornecedor INT
+) RETURNS TEXT AS $$
 BEGIN
-    INSERT INTO Produto VALUES (p_id, p_nome, p_tipo, p_plataforma, p_estoque, p_preco, p_fornecedor);
+    IF p_estoque < 0 THEN
+        RAISE EXCEPTION 'Erro: O estoque inicial não pode ser negativo.';
+    END IF;
+
+    IF p_preco < 0 THEN
+        RAISE EXCEPTION 'Erro: O preço deve ser maior ou igual a zero.';
+    END IF;
+
+    INSERT INTO Produto(id_produto, nome, tipo, plataforma, estoque, preco, id_fornecedor)
+    VALUES (p_id_produto, p_nome, p_tipo, p_plataforma, p_estoque, p_preco, p_id_fornecedor);
+
+    RETURN '✅ Produto cadastrado com sucesso.';
+
+EXCEPTION
+    WHEN foreign_key_violation THEN
+        RETURN '❌ Erro: Fornecedor informado não existe.';
+    WHEN unique_violation THEN
+        RETURN '❌ Erro: Já existe um produto com esse ID.';
+    WHEN OTHERS THEN
+        RETURN '❌ Erro inesperado ao cadastrar produto.';
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- Fornecedor
 CREATE OR REPLACE FUNCTION cadastrar_fornecedor(p_id INT, p_nome VARCHAR, p_telefone VARCHAR)
@@ -80,85 +123,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Cliente
-CREATE OR REPLACE FUNCTION remover_cliente(p_id INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Cliente WHERE id_cliente = p_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Funcionario
-CREATE OR REPLACE FUNCTION remover_funcionario(p_id INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Funcionario WHERE id_funcionario = p_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Venda
-CREATE OR REPLACE FUNCTION remover_venda(p_id INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Venda WHERE id_venda = p_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Parcela
-CREATE OR REPLACE FUNCTION remover_parcela(p_id INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Parcela WHERE id_parcela = p_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Produto
-CREATE OR REPLACE FUNCTION remover_produto(p_id INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Produto WHERE id_produto = p_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Fornecedor
-CREATE OR REPLACE FUNCTION remover_fornecedor(p_id INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Fornecedor WHERE id_fornecedor = p_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Item_Venda
-CREATE OR REPLACE FUNCTION remover_item_venda(p_venda INT, p_produto INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Item_Venda WHERE id_venda = p_venda AND id_produto = p_produto;
-END;
-$$ LANGUAGE plpgsql;
-
--- Compra
-CREATE OR REPLACE FUNCTION remover_compra(p_id INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Compra WHERE id_compra = p_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Item_Compra
-CREATE OR REPLACE FUNCTION remover_item_compra(p_compra INT, p_produto INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Item_Compra WHERE id_compra = p_compra AND id_produto = p_produto;
-END;
-$$ LANGUAGE plpgsql;
-
--- Fornece
-CREATE OR REPLACE FUNCTION remover_fornece(p_fornecedor INT, p_compra INT)
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM Fornece WHERE id_fornecedor = p_fornecedor AND id_compra = p_compra;
-END;
-$$ LANGUAGE plpgsql;
 
 ----------------------------------------------------- REMOÇÃO --------------------------------------------------------
 
