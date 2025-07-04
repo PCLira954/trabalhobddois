@@ -25,8 +25,8 @@ CREATE OR REPLACE FUNCTION realizar_venda_completa(
     p_data DATE,
     p_id_cliente INT,
     p_id_funcionario INT,
-    p_itens JSON,        -- Ex: '[{"id_produto":1,"quantidade":2}, {"id_produto":2,"quantidade":1}]'
-    p_parcelas JSON      -- Ex: '[{"dt_venc":"2025-07-10", "valor":150.00}]'
+    p_itens JSON,
+    p_parcelas JSON
 ) RETURNS TEXT AS $$
 DECLARE
     item JSON;
@@ -36,47 +36,37 @@ DECLARE
     v_estoque INT;
     parcela_id INT := 1;
 BEGIN
-    -- Validação do cliente
     IF NOT EXISTS (SELECT 1 FROM Cliente WHERE id_cliente = p_id_cliente) THEN
-        RAISE EXCEPTION 'Cliente % não existe.', p_id_cliente;
+        RAISE EXCEPTION 'Erro: Cliente % não existe.', p_id_cliente;
     END IF;
 
-    -- Validação do funcionário
     IF NOT EXISTS (SELECT 1 FROM Funcionario WHERE id_funcionario = p_id_funcionario) THEN
-        RAISE EXCEPTION 'Funcionário % não existe.', p_id_funcionario;
+        RAISE EXCEPTION 'Erro: Funcionário % não existe.', p_id_funcionario;
     END IF;
 
-    -- Inserir venda
     INSERT INTO Venda(id_venda, data, id_cliente, id_funcionario)
     VALUES (p_id_venda, p_data, p_id_cliente, p_id_funcionario);
 
-    -- Loop dos itens da venda
     FOR item IN SELECT * FROM json_array_elements(p_itens)
     LOOP
         v_id_produto := (item ->> 'id_produto')::INT;
         v_quantidade := (item ->> 'quantidade')::INT;
 
-        -- Verifica se o produto existe
-        IF NOT EXISTS (SELECT 1 FROM Produto WHERE id_produto = v_id_produto) THEN
-            RAISE EXCEPTION 'Produto % não existe.', v_id_produto;
+        SELECT estoque INTO v_estoque FROM Produto WHERE id_produto = v_id_produto;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Erro: Produto % não encontrado.', v_id_produto;
         END IF;
-
-        -- Verifica e trava o estoque (concorrência)
-        SELECT estoque INTO v_estoque FROM Produto WHERE id_produto = v_id_produto FOR UPDATE;
 
         IF v_estoque < v_quantidade THEN
-            RAISE EXCEPTION 'Estoque insuficiente para o produto %', v_id_produto;
+            RAISE EXCEPTION 'Erro: Estoque insuficiente para o produto %.', v_id_produto;
         END IF;
 
-        -- Inserir item vendido
         INSERT INTO Item_Venda(id_venda, id_produto, quantidade)
         VALUES (p_id_venda, v_id_produto, v_quantidade);
 
-        -- Atualiza o estoque via função centralizada (com log interno)
-        PERFORM atualizar_estoque_produto(v_id_produto, v_quantidade, 'saida', 'venda');
+        UPDATE Produto SET estoque = estoque - v_quantidade WHERE id_produto = v_id_produto;
     END LOOP;
 
-    -- Inserir parcelas
     FOR parcela IN SELECT * FROM json_array_elements(p_parcelas)
     LOOP
         INSERT INTO Parcela(id_parcela, id_venda, dt_venc, dt_pag, valor, multa)
@@ -91,7 +81,15 @@ BEGIN
         parcela_id := parcela_id + 1;
     END LOOP;
 
-    RETURN 'Venda registrada com sucesso.';
+    RETURN '✅ Venda registrada com sucesso.';
+
+EXCEPTION
+    WHEN unique_violation THEN
+        RETURN '❌ Erro: Já existe uma venda com esse ID.';
+    WHEN foreign_key_violation THEN
+        RETURN '❌ Erro: ID de cliente ou funcionário inválido.';
+    WHEN OTHERS THEN
+        RETURN '❌ Erro inesperado ao registrar a venda. Verifique os dados.';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -181,25 +179,33 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION atualizar_estoque_produto(
     p_id_produto INT,
     p_quantidade INT,
-    p_operacao VARCHAR -- 'entrada' ou 'saida'
+    p_operacao VARCHAR
 ) RETURNS TEXT AS $$
 DECLARE
     v_estoque INT;
 BEGIN
     SELECT estoque INTO v_estoque FROM Produto WHERE id_produto = p_id_produto;
 
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Erro: Produto com ID % não encontrado.', p_id_produto;
+    END IF;
+
     IF p_operacao = 'entrada' THEN
         UPDATE Produto SET estoque = estoque + p_quantidade WHERE id_produto = p_id_produto;
     ELSIF p_operacao = 'saida' THEN
         IF v_estoque < p_quantidade THEN
-            RAISE EXCEPTION 'Estoque insuficiente.';
+            RAISE EXCEPTION 'Erro: Estoque insuficiente. Atual: %, Solicitado: %', v_estoque, p_quantidade;
         END IF;
         UPDATE Produto SET estoque = estoque - p_quantidade WHERE id_produto = p_id_produto;
     ELSE
-        RAISE EXCEPTION 'Operação inválida: use "entrada" ou "saida".';
+        RAISE EXCEPTION 'Erro: Operação inválida. Use "entrada" ou "saida".';
     END IF;
 
-    RETURN 'Estoque atualizado com sucesso.';
+    RETURN '✅ Estoque atualizado com sucesso.';
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN '❌ Erro ao atualizar estoque. Verifique os dados informados.';
 END;
 $$ LANGUAGE plpgsql;
 
