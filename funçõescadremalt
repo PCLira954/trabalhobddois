@@ -1,3 +1,79 @@
+------------------------------------------ FUNÇÕES GENÉRICAS ----------------------------------------------------
+
+CREATE OR REPLACE FUNCTION cadastrar_generico(
+    p_tabela TEXT,
+    p_dados JSON
+) RETURNS TEXT AS $$
+DECLARE
+    v_campos TEXT;
+    v_valores TEXT;
+BEGIN
+    -- Extrai os campos e valores do JSON
+    SELECT 
+        string_agg(quote_ident(key), ', '),
+        string_agg(quote_literal(value::TEXT), ', ')
+    INTO v_campos, v_valores
+    FROM json_each_text(p_dados);
+
+    -- Monta e executa o SQL dinâmico
+    EXECUTE format('INSERT INTO %I (%s) VALUES (%s);', p_tabela, v_campos, v_valores);
+
+    RETURN format('✅ Registro inserido com sucesso na tabela %s.', p_tabela);
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN format('❌ Erro ao cadastrar na tabela %s: %s', p_tabela, SQLERRM);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION remover_generico(
+    p_tabela TEXT,
+    p_campo_id TEXT,
+    p_valor_id TEXT
+) RETURNS TEXT AS $$
+BEGIN
+    EXECUTE format('DELETE FROM %I WHERE %I = %L;', p_tabela, p_campo_id, p_valor_id);
+
+    RETURN format('✅ Registro removido da tabela %s onde %s = %s.', p_tabela, p_campo_id, p_valor_id);
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN format('❌ Erro ao remover da tabela %s: %s', p_tabela, SQLERRM);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION alterar_generico(
+    p_tabela TEXT,
+    p_campo_id TEXT,
+    p_valor_id TEXT,
+    p_dados JSON
+) RETURNS TEXT AS $$
+DECLARE
+    v_set TEXT := '';
+    par TEXT;
+BEGIN
+    -- Monta dinamicamente o SET
+    FOR par IN SELECT * FROM json_each_text(p_dados)
+    LOOP
+        v_set := v_set || quote_ident(par.key) || ' = ' || quote_literal(par.value) || ', ';
+    END LOOP;
+
+    -- Remove última vírgula
+    v_set := left(v_set, length(v_set) - 2);
+
+    EXECUTE format(
+        'UPDATE %I SET %s WHERE %I = %L;',
+        p_tabela, v_set, p_campo_id, p_valor_id
+    );
+
+    RETURN format('✅ Registro atualizado na tabela %s.', p_tabela);
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN format('❌ Erro ao alterar tabela %s: %s', p_tabela, SQLERRM);
+END;
+$$ LANGUAGE plpgsql;
+
 ------------------------------------------ CADASTRAMENTO ---------------------------------------------------------
 -- Cliente
 CREATE OR REPLACE FUNCTION cadastrar_cliente(
