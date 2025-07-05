@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION alterar_generico(
 ) RETURNS TEXT AS $$
 DECLARE
     v_set TEXT := '';
-    par TEXT;
+    par RECORD;
 BEGIN
     -- Monta dinamicamente o SET
     FOR par IN SELECT * FROM json_each_text(p_dados)
@@ -61,6 +61,7 @@ BEGIN
     -- Remove última vírgula
     v_set := left(v_set, length(v_set) - 2);
 
+    -- Executa o UPDATE dinâmico
     EXECUTE format(
         'UPDATE %I SET %s WHERE %I = %L;',
         p_tabela, v_set, p_campo_id, p_valor_id
@@ -73,7 +74,6 @@ EXCEPTION
         RETURN format('❌ Erro ao alterar tabela %s: %s', p_tabela, SQLERRM);
 END;
 $$ LANGUAGE plpgsql;
-
 ------------------------------------------ CADASTRAMENTO ---------------------------------------------------------
 -- Cliente
 CREATE OR REPLACE FUNCTION cadastrar_cliente(
